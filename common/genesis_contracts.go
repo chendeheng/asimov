@@ -161,10 +161,6 @@ func ContractRegistryCenter_RegisterOrganizationFunction() (string) {
 	return "registerOrganization"
 }
 
-func ContractRegistryCenter_CanTransferRestrictedAssetFunction() (string) {
-	return "canTransferRestrictedAsset"
-}
-
 func ContractRegistryCenter_UpdateOrganizationStatusFunction() (string) {
 	return "updateOrganizationStatus"
 }
@@ -195,6 +191,10 @@ func ContractRegistryCenter_CanTransferFunction() (string) {
 
 func ContractRegistryCenter_MintAssetFunction() (string) {
 	return "mintAsset"
+}
+
+func ContractRegistryCenter_GetOrganizationAddressByIdFunction() (string) {
+	return "getOrganizationAddressById"
 }
 
 func ContractRegistryCenter_CloseOrganizationFunction() (string) {

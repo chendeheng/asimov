@@ -443,35 +443,32 @@ contract RegistryCenter {
     }
 
     /**
-     * @dev check whether an restricted asset can be transferred
+     * @dev get organization address by organization id
      *
      * @param organizationId the organization Id
      * @param assetIndex asset index of an organization, which is maintained by the organization itself
-     * @param transferAddress the address to transfer to
-     * @return yes or no
+     * @return organization address
      */
-    function canTransferRestrictedAsset(uint32 organizationId, uint32 assetIndex, address transferAddress)
+    function getOrganizationAddressById(uint32 organizationId, uint32 assetIndex)
         public
         view
-        returns(bool, address)
+        returns(address)
     {
         OrganizationInfo storage orgInfo = organizationIdInfoMap[organizationId];
         if (!orgInfo.registered || !orgInfo.active) {
-            return (false, 0x0);
+            return 0x0;
         }
         uint64 assetId = generateAssetID(organizationId, assetIndex);
         if (!assetIdInfoMap[assetId].existed) {
-            return (false, 0x0);
+            return 0x0;
         }
 
         TemplateInfo storage tInfo = templateNameInfoMap[orgInfo.templateName];
         if (!tInfo.registered || !tInfo.active) {
-            return (false, 0x0);
+            return 0x0;
         }
 
-        // Organization organization = Organization(orgInfo.organizationContract);
-        // return organization.canTransfer(transferAddress, assetIndex);
-        return (true, orgInfo.organizationContract);
+        return orgInfo.organizationContract;
     }
 
     /**
