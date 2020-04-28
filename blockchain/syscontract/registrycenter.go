@@ -17,6 +17,8 @@ import (
 	"math/big"
 )
 
+var canTransferFuncName = "canTransfer"
+
 // GetContractAddressByAsset returns organization addresses by calling system contract of registry
 // according to parameter assets
 func (m *Manager) GetContractAddressByAsset(
@@ -175,6 +177,7 @@ func (m *Manager) IsSupport(block *asiutil.Block,
 		return false, 0
 	}
 
+	// step1: prepare parameters for calling system contract
 	_, organizationId, assetIndex := assets.AssetsFields()
 	transferAddress := common.BytesToAddress(address)
 
@@ -199,13 +202,48 @@ func (m *Manager) IsSupport(block *asiutil.Block,
 
 	if err != nil {
 		log.Error(err)
-		return false, leftOverGas
+		return false, gasLimit - common.SupportCheckGas + leftOverGas
 	}
 
-	var support bool
-	err = fvm.UnPackFunctionResult(abi, &support, funcName, result)
+	outType := []interface{}{new(bool), new(common.Address)}
+	err = fvm.UnPackFunctionResult(abi, &outType, funcName, result)
 	if err != nil {
 		log.Error(err)
 	}
-	return support, gasLimit - common.SupportCheckGas + leftOverGas
+
+	if !*(outType[0]).(*bool) {
+		return false, gasLimit - common.SupportCheckGas + leftOverGas
+	}
+
+	// step2: call template contract to get organization contract abi
+	// call organization contract to check if the asset is restricted for transferring
+	organizationAddress := *(outType[1]).(*common.Address)
+	category, templateName, _ := m.chain.GetTemplateInfo(organizationAddress.Bytes(), common.SystemContractReadOnlyGas,
+		block, stateDB, chaincfg.ActiveNetParams.FvmParam)
+
+	templateContent, ok, _ := m.GetTemplate(block, common.SystemContractReadOnlyGas,
+		stateDB, chaincfg.ActiveNetParams.FvmParam, category, templateName)
+	if !ok {
+		return false, gasLimit - common.SupportCheckGas + leftOverGas
+	}
+
+	keyHash := common.HexToHash(templateContent.Key)
+	_, _, _, abiInfo, _, _ := m.chain.FetchTemplate(nil, &keyHash)
+	inputTransfer, err := fvm.PackFunctionArgs(string(abiInfo), canTransferFuncName, transferAddress, assetIndex)
+	if err != nil {
+		return false, gasLimit - common.SupportCheckGas + leftOverGas
+	}
+
+	// call canTransfer method to check if the asset can be transfer
+	result2, leftOverGas2, _ := fvm.CallReadOnlyFunction(caller, block, m.chain,
+		stateDB, chaincfg.ActiveNetParams.FvmParam,
+		common.ReadOnlyGas, organizationAddress, inputTransfer)
+
+	var support bool
+	err = fvm.UnPackFunctionResult(string(abiInfo), &support, canTransferFuncName, result2)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return support, gasLimit - common.SupportCheckGas + leftOverGas + leftOverGas2
 }

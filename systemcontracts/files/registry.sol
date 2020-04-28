@@ -412,10 +412,6 @@ contract RegistryCenter {
      * @return yes or no
      */
     function isRestrictedAsset(uint32 organizationId, uint32 assetIndex) public view returns(bool, bool) {
-        OrganizationInfo storage orgInfo = organizationIdInfoMap[organizationId];
-        if (!orgInfo.registered) {
-            return (false, false);
-        }
         AssetInfo storage assetInfo = assetIdInfoMap[generateAssetID(organizationId, assetIndex)];
         if (!assetInfo.existed) {
             return (false, false);
@@ -457,19 +453,25 @@ contract RegistryCenter {
     function canTransferRestrictedAsset(uint32 organizationId, uint32 assetIndex, address transferAddress)
         public
         view
-        returns(bool)
+        returns(bool, address)
     {
         OrganizationInfo storage orgInfo = organizationIdInfoMap[organizationId];
         if (!orgInfo.registered || !orgInfo.active) {
-            return false;
+            return (false, 0x0);
         }
         uint64 assetId = generateAssetID(organizationId, assetIndex);
         if (!assetIdInfoMap[assetId].existed) {
-            return false;
+            return (false, 0x0);
         }
 
-        Organization organization = Organization(orgInfo.organizationContract);
-        return organization.canTransfer(transferAddress, assetIndex);
+        TemplateInfo storage tInfo = templateNameInfoMap[orgInfo.templateName];
+        if (!tInfo.registered || !tInfo.active) {
+            return (false, 0x0);
+        }
+
+        // Organization organization = Organization(orgInfo.organizationContract);
+        // return organization.canTransfer(transferAddress, assetIndex);
+        return (true, orgInfo.organizationContract);
     }
 
     /**
