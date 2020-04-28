@@ -244,5 +244,5 @@ func (m *Manager) IsSupport(block *asiutil.Block,
 		log.Error(err)
 	}
 
-	return support, gasLimit - common.SupportCheckGas + leftOverGas + leftOverGas2 + common.ReadOnlyGas
+	return support, gasLimit - common.SupportCheckGas + leftOverGas + leftOverGas2 - common.ReadOnlyGas
 }
