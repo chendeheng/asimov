@@ -4,6 +4,7 @@
 package blockchain
 
 import (
+	"fmt"
 	"github.com/AsimovNetwork/asimov/asiutil"
 	"github.com/AsimovNetwork/asimov/chaincfg"
 	"github.com/AsimovNetwork/asimov/common"
@@ -151,4 +152,14 @@ func TestCalculateBalance(t *testing.T) {
 		}
 	}
 	t.Log("TestCalculateBalance finish")
+}
+
+
+func TestCalculateBalanceasd(t *testing.T) {
+	transferAddress := common.Address{99, 183, 35, 71, 205, 252, 88, 74, 37, 139, 64, 246, 132, 193, 118, 226, 13, 88, 74, 67, 226}
+	assetIndex := 1
+	methodId := []byte{252, 88, 132, 118}
+	methodId = append(methodId, common.LeftPadBytes(transferAddress.Bytes(), 32)...)
+	methodId = append(methodId, common.LeftPadBytes([]byte{byte(assetIndex)}, 32)...)
+	fmt.Println(methodId)
 }
