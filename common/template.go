@@ -13,8 +13,8 @@ const (
 
 	InitTemplateFunc = "initTemplate"
 
-	// default value of an address type, formatted with string
-	DefaultAddressValue = "0x000000000000000000000000000000000000000000"
+	// empty value of an address type, formatted with string
+	EmptyAddressValue = "0x000000000000000000000000000000000000000000"
 
 	// This is the standard template's abi.
 	TemplateABI = "[{\"constant\": true, \"inputs\": [], \"name\": \"getTemplateInfo\", \"outputs\": [{\"name\": \"\", \"type\": \"uint16\"}, {\"name\": \"\", \"type\": \"string\"} ], \"payable\": false, \"stateMutability\": \"view\", \"type\": \"function\"}, {\"constant\": false, \"inputs\": [{\"name\": \"_category\", \"type\": \"uint16\"}, {\"name\": \"_templateName\", \"type\": \"string\"} ], \"name\": \"initTemplate\", \"outputs\": [], \"payable\": false, \"stateMutability\": \"nonpayable\", \"type\": \"function\"} ]"
@@ -24,8 +24,8 @@ var (
 	// callCode for `getTemplateInfo` function.
 	GetTemplateInfoCallCode = Hex2Bytes("2fb97c1d")
 
-	// default byte slice of canTransfer func
-	CanTransferFuncByte = []byte{252, 88, 132, 118}
+	// callCode for `canTransfer` function.
+	CanTransferFuncByte = Hex2Bytes("fc588476")
 )
 
 // PackCanTransferInput returns a byte slice according to given parameters

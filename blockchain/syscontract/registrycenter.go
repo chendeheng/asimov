@@ -209,7 +209,7 @@ func (m *Manager) IsSupport(block *asiutil.Block,
 	}
 
 	// check if return valid organization address
-	if common.DefaultAddressValue == outType.String() {
+	if common.EmptyAddressValue == outType.String() {
 		return false, gasLimit - common.SupportCheckGas + leftOverGas
 	}
 

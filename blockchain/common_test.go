@@ -521,7 +521,7 @@ func (m *ManagerTmp) IsSupport(block *asiutil.Block,
 		log.Error(err)
 	}
 
-	if common.DefaultAddressValue == outType.String() {
+	if common.EmptyAddressValue == outType.String() {
 		return false, gasLimit - common.SupportCheckGas + leftOverGas
 	}
 
