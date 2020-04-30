@@ -3,7 +3,9 @@
 // license that can be found in the LICENSE file.
 package common
 
-import "errors"
+import (
+	"errors"
+)
 
 const (
 	// A standard template contract must contains
@@ -26,13 +28,37 @@ var (
 
 	// callCode for `canTransfer` function.
 	CanTransferFuncByte = Hex2Bytes("fc588476")
+
+	// callCode for `isRestrictedAsset` function.
+	IsRestrictedAssetByte = Hex2Bytes("f0d94a13")
+
+	// callCode for `getOrganizationAddressById` function.
+	GetOrganizationAddressByIdByte = Hex2Bytes("c0bb5900")
 )
 
 // PackCanTransferInput returns a byte slice according to given parameters
-func PackCanTransferInput(transferAddress Address, assetIndex uint32) []byte {
+func PackCanTransferInput(transferAddress []byte, assetIndex uint32) []byte {
 	var input []byte
 	input = append(input, CanTransferFuncByte...)
-	input = append(input, LeftPadBytes(transferAddress.Bytes(), 32)...)
+	input = append(input, LeftPadBytes(transferAddress, 32)...)
+	input = append(input, LeftPadBytes([]byte{byte(assetIndex)}, 32)...)
+	return input
+}
+
+// PackIsRestrictedAssetInput returns a byte slice according to given parameters
+func PackIsRestrictedAssetInput(organizationId uint32, assetIndex uint32) []byte {
+	var input []byte
+	input = append(input, IsRestrictedAssetByte...)
+	input = append(input, LeftPadBytes([]byte{byte(organizationId)}, 32)...)
+	input = append(input, LeftPadBytes([]byte{byte(assetIndex)}, 32)...)
+	return input
+}
+
+// PackGetOrganizationAddressByIdInput returns a byte slice according to given parameters
+func PackGetOrganizationAddressByIdInput(organizationId uint32, assetIndex uint32) []byte {
+	var input []byte
+	input = append(input, GetOrganizationAddressByIdByte...)
+	input = append(input, LeftPadBytes([]byte{byte(organizationId)}, 32)...)
 	input = append(input, LeftPadBytes([]byte{byte(assetIndex)}, 32)...)
 	return input
 }
@@ -52,4 +78,24 @@ func UnPackBoolResult(ret []byte) (bool, error) {
 		support = false
 	}
 	return support, nil
+}
+
+// UnPackBoolResult returns bool value by unpacking given byte slice
+func UnPackIsRestrictedAssetResult(ret []byte) (bool, bool, error) {
+	if len(ret) != 64 {
+		return false, false, errors.New("invalid length of ret of isRestrictedAsset func")
+	}
+	var existed, support bool
+	if ret[31] == 1 {
+		existed = true
+	} else {
+		existed = false
+	}
+
+	if ret[63] == 1 {
+		support = true
+	} else {
+		support = false
+	}
+	return existed, support, nil
 }

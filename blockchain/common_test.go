@@ -453,36 +453,27 @@ func (m *ManagerTmp) IsLimit(block *asiutil.Block,
 	stateDB vm.StateDB, assets *protos.Assets) int {
 	officialAddr := chaincfg.OfficialAddress
 	_, organizationId, assetIndex := assets.AssetsFields()
-	contract := m.GetActiveContractByHeight(block.Height(), common.RegistryCenter)
-	if contract == nil {
-		errStr := fmt.Sprintf("Failed to get active contract %s, %d", common.RegistryCenter, block.Height())
-		log.Error(errStr)
-		panic(errStr)
-	}
-	proxyAddr, abi := vm.ConvertSystemContractAddress(common.RegistryCenter), contract.AbiInfo
-	funcName := common.ContractRegistryCenter_IsRestrictedAssetFunction()
-	input, err := fvm.PackFunctionArgs(abi, funcName, organizationId, assetIndex)
-	if err != nil {
-		return -1
-	}
+	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
+	input := common.PackIsRestrictedAssetInput(organizationId, assetIndex)
 	result, _, err := fvm.CallReadOnlyFunction(officialAddr, block, m.chain,
 		stateDB, chaincfg.ActiveNetParams.FvmParam,
-		common.SystemContractReadOnlyGas, proxyAddr, input)
+		common.ReadOnlyGas, proxyAddr, input)
 	if err != nil {
 		log.Error(err)
 		return -1
 	}
 
-	var outType = &[]interface{}{new(bool), new(bool)}
-	err = fvm.UnPackFunctionResult(abi, &outType, funcName, result)
+	existed, support, err := common.UnPackIsRestrictedAssetResult(result)
 	if err != nil {
+		log.Error(err)
 		return -1
 	}
-	if !*((*outType)[0]).(*bool) {
+
+	if !existed {
 		return -1
 	}
-	if *((*outType)[1]).(*bool) {
+	if support {
 		return 1
 	}
 	return 0
@@ -491,46 +482,34 @@ func (m *ManagerTmp) IsLimit(block *asiutil.Block,
 
 func (m *ManagerTmp) IsSupport(block *asiutil.Block,
 	stateDB vm.StateDB, gasLimit uint64, assets *protos.Assets, address []byte) (bool, uint64) {
+
+	// step1: prepare parameters for calling system contract to get organization address
 	_, organizationId, assetIndex := assets.AssetsFields()
-
 	caller := chaincfg.OfficialAddress
-	contract := m.GetActiveContractByHeight(block.Height(), common.RegistryCenter)
-	if contract == nil {
-		errStr := fmt.Sprintf("Failed to get active contract %s, %d", common.RegistryCenter, block.Height())
-		log.Error(errStr)
-		panic(errStr)
-	}
-	proxyAddr, abi := vm.ConvertSystemContractAddress(common.RegistryCenter), contract.AbiInfo
-	funcName := common.ContractRegistryCenter_GetOrganizationAddressByIdFunction()
-	input, err := fvm.PackFunctionArgs(abi, funcName, organizationId, assetIndex)
-	if err != nil {
-		return false, gasLimit
-	}
+	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
+	input := common.PackGetOrganizationAddressByIdInput(organizationId, assetIndex)
 	result, leftOverGas, err := fvm.CallReadOnlyFunction(caller, block, m.chain,
 		stateDB, chaincfg.ActiveNetParams.FvmParam,
-		gasLimit, proxyAddr, input)
+		common.SupportCheckGas, proxyAddr, input)
+
 	if err != nil {
 		log.Error(err)
-		return false, leftOverGas
-	}
-
-	var outType common.Address
-	err = fvm.UnPackFunctionResult(abi, &outType, funcName, result)
-	if err != nil {
-		log.Error(err)
-	}
-
-	if common.EmptyAddressValue == outType.String() {
 		return false, gasLimit - common.SupportCheckGas + leftOverGas
 	}
 
-	transferAddress := common.BytesToAddress(address)
-	transferInput := common.PackCanTransferInput(transferAddress, assetIndex)
+	// check if return valid organization address
+	organizationAddress := common.BytesToAddress(result)
+	if common.EmptyAddressValue == organizationAddress.String() {
+		return false, gasLimit - common.SupportCheckGas + leftOverGas
+	}
+
+	// step2: call canTransfer method to check if the asset can be transfer
+	transferInput := common.PackCanTransferInput(address, assetIndex)
 
 	result2, leftOverGas2, _ := fvm.CallReadOnlyFunction(caller, block, m.chain,
 		stateDB, chaincfg.ActiveNetParams.FvmParam,
-		common.ReadOnlyGas, outType, transferInput)
+		common.ReadOnlyGas, organizationAddress, transferInput)
 
 	support, err := common.UnPackBoolResult(result2)
 	if err != nil {
