@@ -37,9 +37,6 @@ var (
 	// callCode for `getOrganizationAddressById` function.
 	GetOrganizationAddressByIdByte = Hex2Bytes("c0bb5900")
 
-	// callCode for `getOrganizationAddressesByAssets` function.
-	GetOrganizationAddressesByAssetsByte = Hex2Bytes("4493dd67")
-
 	// callCode for `getApprovedTemplatesCount` function.
 	GetApprovedTemplatesCountByte = Hex2Bytes("ff2e9b4d")
 
