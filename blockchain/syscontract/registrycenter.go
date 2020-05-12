@@ -157,7 +157,7 @@ func (m *Manager) isLimit(block *asiutil.Block,
 		return -1
 	}
 
-	existed, support, err := common.UnPackIsRestrictedAssetResult(result)
+	existed, limit, err := common.UnPackIsRestrictedAssetResult(result)
 	if err != nil {
 		log.Error(err)
 		return -1
@@ -166,7 +166,7 @@ func (m *Manager) isLimit(block *asiutil.Block,
 	if !existed {
 		return -1
 	}
-	if support {
+	if limit {
 		return 1
 	}
 	return 0
