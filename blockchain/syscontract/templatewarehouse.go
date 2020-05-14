@@ -61,7 +61,7 @@ func (m *Manager) GetTemplates(
 	}
 
 	for i := fromIndex; i >= endIndex; i-- {
-		detailInput := common.PackGetTemplateDetailInput(getTemplatesFunc, category, int64(i))
+		detailInput := common.PackGetTemplateDetailInput(getTemplatesFunc, category, uint64(i))
 
 		ret, leftOverGas, err := fvm.CallReadOnlyFunction(officialAddr, block, m.chain, stateDB, chainConfig,
 			leftOverGas, templateWarehouseAddress, detailInput)

@@ -6,7 +6,6 @@ package common
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/bytom/common"
 )
 
 const (
@@ -58,26 +57,24 @@ func PackCanTransferInput(transferAddress []byte, assetIndex uint32) []byte {
 	var input []byte
 	input = append(input, CanTransferFuncByte...)
 	input = append(input, LeftPadBytes(transferAddress, 32)...)
-	input = append(input, LeftPadBytes([]byte{byte(assetIndex)}, 32)...)
-	return input
+
+	return makeUpUint32(input, assetIndex)
 }
 
 // PackIsRestrictedAssetInput returns a byte slice according to given parameters
 func PackIsRestrictedAssetInput(organizationId uint32, assetIndex uint32) []byte {
 	var input []byte
 	input = append(input, IsRestrictedAssetByte...)
-	input = append(input, LeftPadBytes([]byte{byte(organizationId)}, 32)...)
-	input = append(input, LeftPadBytes([]byte{byte(assetIndex)}, 32)...)
-	return input
+
+	return makeUpUint32(makeUpUint32(input, organizationId), assetIndex)
 }
 
 // PackGetOrganizationAddressByIdInput returns a byte slice according to given parameters
 func PackGetOrganizationAddressByIdInput(organizationId uint32, assetIndex uint32) []byte {
 	var input []byte
 	input = append(input, GetOrganizationAddressByIdByte...)
-	input = append(input, LeftPadBytes([]byte{byte(organizationId)}, 32)...)
-	input = append(input, LeftPadBytes([]byte{byte(assetIndex)}, 32)...)
-	return input
+
+	return makeUpUint32(makeUpUint32(input, organizationId), assetIndex)
 }
 
 // PackGetTemplateCountInput returns a byte slice according to given parameters
@@ -88,31 +85,61 @@ func PackGetTemplateCountInput(funcName string, category uint16) []byte {
 	} else if ContractTemplateWarehouse_GetSubmittedTemplatesCountFunction() == funcName {
 		input = append(input, GetSubmittedTemplatesCountByte...)
 	}
-	input = append(input, LeftPadBytes([]byte{byte(category)}, 32)...)
-	return input
+
+	return makeUpUint16(input, category)
 }
 
 // PackGetTemplateDetailInput returns a byte slice according to given parameters
-func PackGetTemplateDetailInput(funcName string, category uint16, index int64) []byte {
+func PackGetTemplateDetailInput(funcName string, category uint16, index uint64) []byte {
 	var input []byte
 	if ContractTemplateWarehouse_GetApprovedTemplateFunction() == funcName {
 		input = append(input, GetApprovedTemplateByte...)
 	} else if ContractTemplateWarehouse_GetSubmittedTemplateFunction() == funcName {
 		input = append(input, GetSubmittedTemplateByte...)
 	}
-	input = append(input, LeftPadBytes([]byte{byte(category)}, 32)...)
-	input = append(input, LeftPadBytes([]byte{byte(index)}, 32)...)
-	return input
+
+	return makeUpUint64(makeUpUint16(input, category), index)
 }
 
 // PackGetTemplateInput returns a byte slice according to given parameters
 func PackGetTemplateInput(category uint16, name string) []byte {
 	var input []byte
 	input = append(input, GetTemplateByte...)
-	input = append(input, LeftPadBytes([]byte{byte(category)}, 32)...)
+	input = makeUpUint16(input, category)
 	input = append(input, LeftPadBytes([]byte{byte(64)}, 32)...)
-	input = append(input, LeftPadBytes([]byte{byte(len(name))}, 32)...)
-	input = append(input, common.RightPadBytes([]byte(name), 32)...)
+	input = makeUpUint64(input, uint64(len(name)))
+	input = append(input, RightPadBytes([]byte(name), 32)...)
+
+	return input
+}
+
+// makeUpUint64 returns a 32 byte slice, by making up uint64
+func makeUpUint64(input []byte, a uint64) []byte {
+	input = append(input, LeftPadBytes([]byte{}, 24)...)
+	ret := make([]byte, 8)
+	binary.BigEndian.PutUint64(ret, a)
+	input = append(input, ret...)
+
+	return input
+}
+
+// makeUpUint32 returns a 32 byte slice, by making up uint32
+func makeUpUint32(input []byte, a uint32) []byte {
+	input = append(input, LeftPadBytes([]byte{}, 28)...)
+	ret := make([]byte, 4)
+	binary.BigEndian.PutUint32(ret, a)
+	input = append(input, ret...)
+
+	return input
+}
+
+// makeUpUint16 returns a 32 byte slice, by making up uint16
+func makeUpUint16(input []byte, a uint16) []byte {
+	input = append(input, LeftPadBytes([]byte{}, 30)...)
+	ret := make([]byte, 2)
+	binary.BigEndian.PutUint16(ret, a)
+	input = append(input, ret...)
+
 	return input
 }
 
@@ -130,6 +157,7 @@ func UnPackBoolResult(ret []byte) (bool, error) {
 	default:
 		support = false
 	}
+
 	return support, nil
 }
 
@@ -150,6 +178,7 @@ func UnPackIsRestrictedAssetResult(ret []byte) (bool, bool, error) {
 	} else {
 		support = false
 	}
+
 	return existed, support, nil
 }
 
