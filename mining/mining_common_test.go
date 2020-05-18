@@ -399,16 +399,10 @@ func (m *ManagerTmp) GetTemplate(
 		true, leftOvergas
 }
 
-
-type FeeItem struct {
-	Assets   *protos.Assets
-	Height   int32
-}
-
 func (m *ManagerTmp) GetFees(
 	block *asiutil.Block,
 	stateDB vm.StateDB,
-	chainConfig *params.ChainConfig) (map[protos.Assets]int32, error, uint64) {
+	chainConfig *params.ChainConfig) (map[protos.Asset]int32, error, uint64) {
 
 	officialAddr := chaincfg.OfficialAddress
 	contract := m.GetActiveContractByHeight(block.Height(), common.ValidatorCommittee)
@@ -442,12 +436,12 @@ func (m *ManagerTmp) GetFees(
 		return nil, err, leftOvergas
 	}
 	if len(assets) != len(height) {
-		errStr := "Get fee list failed, length of assets does not match length of height"
+		errStr := "Get fee list failed, length of asset does not match length of height"
 		log.Errorf(errStr)
 		return nil, errors.New(errStr), leftOvergas
 	}
 
-	fees := make(map[protos.Assets]int32)
+	fees := make(map[protos.Asset]int32)
 	for i := 0; i < len(assets); i++ {
 		pAssets := protos.AssetFromBytes(assets[i].Bytes())
 		fees[*pAssets] = int32(height[i].Int64())
@@ -457,9 +451,9 @@ func (m *ManagerTmp) GetFees(
 }
 
 func (m *ManagerTmp) IsLimit(block *asiutil.Block,
-	stateDB vm.StateDB, assets *protos.Assets) int {
+	stateDB vm.StateDB, asset *protos.Asset) int {
 	officialAddr := chaincfg.OfficialAddress
-	_, organizationId, assetIndex := assets.AssetsFields()
+	_, organizationId, assetIndex := asset.AssetFields()
 	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
 	input := common.PackIsRestrictedAssetInput(organizationId, assetIndex)
@@ -471,7 +465,7 @@ func (m *ManagerTmp) IsLimit(block *asiutil.Block,
 		return -1
 	}
 
-	existed, support, err := common.UnPackIsRestrictedAssetResult(result)
+	existed, limit, err := common.UnPackIsRestrictedAssetResult(result)
 	if err != nil {
 		log.Error(err)
 		return -1
@@ -480,19 +474,19 @@ func (m *ManagerTmp) IsLimit(block *asiutil.Block,
 	if !existed {
 		return -1
 	}
-	if support {
+	if limit {
 		return 1
 	}
 	return 0
 }
 
 func (m *ManagerTmp) IsSupport(block *asiutil.Block,
-	stateDB vm.StateDB, gasLimit uint64, assets *protos.Assets, address []byte) (bool, uint64) {
+	stateDB vm.StateDB, gasLimit uint64, asset *protos.Asset, address []byte) (bool, uint64) {
 	if gasLimit < common.SupportCheckGas {
 		return false, 0
 	}
 	// step1: prepare parameters for calling system contract to get organization address
-	_, organizationId, assetIndex := assets.AssetsFields()
+	_, organizationId, assetIndex := asset.AssetFields()
 	caller := chaincfg.OfficialAddress
 	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
@@ -692,7 +686,7 @@ func (c *FakeBtcClient) GetBitcoinBlockChainInfo(result interface{}) error {
 type fakeIn struct {
 	account     *crypto.Account
 	amount      int64
-	assets      *protos.Assets
+	asset       *protos.Asset
 	index       uint32
 	coinbase    bool
 	blockHeight int32
@@ -702,7 +696,7 @@ type fakeIn struct {
 type fakeOut struct {
 	addr   *common.Address
 	amount int64
-	assets *protos.Assets
+	asset  *protos.Asset
 }
 
 func createFakeTx(vin []*fakeIn, vout []*fakeOut, global_view *blockchain.UtxoViewpoint) *asiutil.Tx {
@@ -718,13 +712,13 @@ func createFakeTx(vin []*fakeIn, vout []*fakeOut, global_view *blockchain.UtxoVi
 		txin := protos.NewTxIn(&outpoint, nil)
 		txMsg.AddTxIn(txin)
 
-		entry := txo.NewUtxoEntry(v.amount, prePkScript, v.blockHeight, v.coinbase, v.assets, nil)
+		entry := txo.NewUtxoEntry(v.amount, prePkScript, v.blockHeight, v.coinbase, v.asset, nil)
 		global_view.AddEntry(outpoint, entry)
 	}
 
 	for _, v := range vout {
 		pkScript, _ := txscript.PayToAddrScript(v.addr)
-		txout := protos.NewTxOut(v.amount, pkScript, *v.assets)
+		txout := protos.NewTxOut(v.amount, pkScript, *v.asset)
 		txMsg.AddTxOut(txout)
 	}
 

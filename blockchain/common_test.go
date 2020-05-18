@@ -402,7 +402,7 @@ func (m *ManagerTmp) GetTemplate(
 func (m *ManagerTmp) GetFees(
 	block *asiutil.Block,
 	stateDB vm.StateDB,
-	chainConfig *params.ChainConfig) (map[protos.Assets]int32, error, uint64) {
+	chainConfig *params.ChainConfig) (map[protos.Asset]int32, error, uint64) {
 
 	officialAddr := chaincfg.OfficialAddress
 	contract := m.GetActiveContractByHeight(block.Height(), common.ValidatorCommittee)
@@ -435,12 +435,12 @@ func (m *ManagerTmp) GetFees(
 		return nil, err, leftOvergas
 	}
 	if len(assets) != len(height) {
-		errStr := "Get fee list failed, length of assets does not match length of height"
+		errStr := "Get fee list failed, length of asset does not match length of height"
 		log.Errorf(errStr)
 		return nil, errors.New(errStr), leftOvergas
 	}
 
-	fees := make(map[protos.Assets]int32)
+	fees := make(map[protos.Asset]int32)
 	for i := 0; i < len(assets); i++ {
 		pAssets := protos.AssetFromBytes(assets[i].Bytes())
 		fees[*pAssets] = int32(height[i].Int64())
@@ -450,9 +450,9 @@ func (m *ManagerTmp) GetFees(
 }
 
 func (m *ManagerTmp) IsLimit(block *asiutil.Block,
-	stateDB vm.StateDB, assets *protos.Assets) int {
+	stateDB vm.StateDB, asset *protos.Asset) int {
 	officialAddr := chaincfg.OfficialAddress
-	_, organizationId, assetIndex := assets.AssetsFields()
+	_, organizationId, assetIndex := asset.AssetFields()
 	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
 	input := common.PackIsRestrictedAssetInput(organizationId, assetIndex)
@@ -464,7 +464,7 @@ func (m *ManagerTmp) IsLimit(block *asiutil.Block,
 		return -1
 	}
 
-	existed, support, err := common.UnPackIsRestrictedAssetResult(result)
+	existed, limit, err := common.UnPackIsRestrictedAssetResult(result)
 	if err != nil {
 		log.Error(err)
 		return -1
@@ -473,7 +473,7 @@ func (m *ManagerTmp) IsLimit(block *asiutil.Block,
 	if !existed {
 		return -1
 	}
-	if support {
+	if limit {
 		return 1
 	}
 	return 0
@@ -481,10 +481,10 @@ func (m *ManagerTmp) IsLimit(block *asiutil.Block,
 
 
 func (m *ManagerTmp) IsSupport(block *asiutil.Block,
-	stateDB vm.StateDB, gasLimit uint64, assets *protos.Assets, address []byte) (bool, uint64) {
+	stateDB vm.StateDB, gasLimit uint64, asset *protos.Asset, address []byte) (bool, uint64) {
 
 	// step1: prepare parameters for calling system contract to get organization address
-	_, organizationId, assetIndex := assets.AssetsFields()
+	_, organizationId, assetIndex := asset.AssetFields()
 	caller := chaincfg.OfficialAddress
 	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
@@ -1135,7 +1135,7 @@ func StandardCoinbaseScript(nextBlockHeight int32, extraNonce uint64) ([]byte, e
 }
 
 func createTestCoinbaseTx(params *chaincfg.Params, coinbaseScript []byte, nextBlockHeight int32,
-	addr common.IAddress, assets protos.Assets, amount int64, contractOut *protos.TxOut) (*asiutil.Tx, *protos.TxOut, error) {
+	addr common.IAddress, asset protos.Asset, amount int64, contractOut *protos.TxOut) (*asiutil.Tx, *protos.TxOut, error) {
 
 	var pkScript []byte
 	if addr != nil {
@@ -1176,7 +1176,7 @@ func createTestCoinbaseTx(params *chaincfg.Params, coinbaseScript []byte, nextBl
 	stdTxOut := &protos.TxOut{
 		Value:    value,
 		PkScript: pkScript,
-		Assets:   assets,
+		Asset:    asset,
 	}
 	tx.AddTxOut(stdTxOut)
 	tx.TxContract.GasLimit = common.CoinbaseTxGas
@@ -1186,7 +1186,7 @@ func createTestCoinbaseTx(params *chaincfg.Params, coinbaseScript []byte, nextBl
 //fetch utxo from blockchain or input preOut param:
 func (b *BlockChain) createNormalTx(
 	privateKey string,
-	assets protos.Assets,
+	asset protos.Asset,
 	outputAddr common.Address,
 	amount int64,
 	fees int64,
@@ -1208,7 +1208,7 @@ func (b *BlockChain) createNormalTx(
 
 	view := NewUtxoViewpoint()
 	var prevOuts *[]protos.OutPoint
-	prevOuts, err = b.FetchUtxoViewByAddressAndAsset(view, acc.Address.ScriptAddress(), &assets)
+	prevOuts, err = b.FetchUtxoViewByAddressAndAsset(view, acc.Address.ScriptAddress(), &asset)
 	if err != nil {
 		log.Errorf("createSignUpTx: FetchUtxoViewByAddress error: %v",err)
 		return nil, err
@@ -1239,7 +1239,7 @@ func (b *BlockChain) createNormalTx(
 			txMsg.AddTxOut(&protos.TxOut{
 				Value:    amount,
 				PkScript: outputPkScript,
-				Assets:   *entry.Assets(),
+				Asset:    *entry.Asset(),
 				Data:     nil,
 			})
 
@@ -1248,7 +1248,7 @@ func (b *BlockChain) createNormalTx(
 				txMsg.AddTxOut(&protos.TxOut{
 					Value:    changeValue,
 					PkScript: inputPkScript,
-					Assets:   *entry.Assets(),
+					Asset:    *entry.Asset(),
 					Data:     nil,
 				})
 			}
@@ -1288,7 +1288,7 @@ func (b *BlockChain) createNormalTx(
 				txMsg.AddTxOut(&protos.TxOut{
 					Value:    amount,
 					PkScript: outputPkScript,
-					Assets:   *entry.Assets(),
+					Asset:    *entry.Asset(),
 					Data:     nil,
 				})
 
@@ -1296,7 +1296,7 @@ func (b *BlockChain) createNormalTx(
 				txMsg.AddTxOut(&protos.TxOut{
 					Value:    changeValue,
 					PkScript: inputPkScript,
-					Assets:   *entry.Assets(),
+					Asset:    *entry.Asset(),
 					Data:     nil,
 				})
 
@@ -1341,7 +1341,7 @@ func createUtxoView(utxoList []*txo.UtxoEntry, view *UtxoViewpoint, prevOutList 
 	}
 	for i := 0; i < len(utxoList); i++ {
 		var testPoint protos.OutPoint
-		data := int64(utxoList[i].Assets().Id + uint64(utxoList[i].Assets().Property) + uint64(utxoList[i].Amount()))
+		data := int64(utxoList[i].Asset().Id + uint64(utxoList[i].Asset().Property) + uint64(utxoList[i].Amount()))
 		assetsByte := IntToByte(data)
 		testPoint.Hash = common.DoubleHashH(assetsByte)
 		testPoint.Index = uint32(i+1)
@@ -1399,13 +1399,13 @@ func createTxByParams(
 
 //createTestTx:create normal tx by input param, not care whether the input utxo is validate:
 func createTestTx(privString string, payAddrPkScript []byte, receiverPkScript []byte, gaslimit uint32,
-	inputAmountList []int64, inputAssetsList []*protos.Assets,
-	outputAmountList []int64, outputAssetsList []*protos.Assets) (*protos.MsgTx, map[protos.Assets]int64, *UtxoViewpoint, error) {
+	inputAmountList []int64, inputAssetsList []*protos.Asset,
+	outputAmountList []int64, outputAssetsList []*protos.Asset) (*protos.MsgTx, map[protos.Asset]int64, *UtxoViewpoint, error) {
 	var err error
 	var normalTx *protos.MsgTx
-	fees := make(map[protos.Assets]int64)
-	totalInCoin := make(map[protos.Assets]int64)
-	totalOutCoin := make(map[protos.Assets]int64)
+	fees := make(map[protos.Asset]int64)
+	totalInCoin := make(map[protos.Asset]int64)
+	totalOutCoin := make(map[protos.Asset]int64)
 	utxoViewPoint := NewUtxoViewpoint()
 	{
 		//create utxo list:
@@ -1510,19 +1510,19 @@ func spendTransaction(utxoView *UtxoViewpoint, tx *asiutil.Tx, height int32) err
 	return nil
 }
 
-func rebuildFunder(tx *asiutil.Tx, stdTxout *protos.TxOut, fees *map[protos.Assets]int64) {
-	for assets, value := range *fees {
+func rebuildFunder(tx *asiutil.Tx, stdTxout *protos.TxOut, fees *map[protos.Asset]int64) {
+	for asset, value := range *fees {
 		if value <= 0 {
 			continue
 		}
 
-		if assets.IsIndivisible() {
+		if asset.IsIndivisible() {
 			continue
 		}
-		if assets.Equal(&asiutil.FlowCoinAsset) {
+		if asset.Equal(&asiutil.AsimovAsset) {
 			stdTxout.Value += value
 		} else {
-			tx.MsgTx().AddTxOut(protos.NewTxOut(value, stdTxout.PkScript, assets))
+			tx.MsgTx().AddTxOut(protos.NewTxOut(value, stdTxout.PkScript, asset))
 		}
 	}
 }
@@ -1533,7 +1533,7 @@ func createTestBlock(
 	round uint32,
 	slot uint16,
 	preHeight int32,
-	assets protos.Assets,
+	asset protos.Asset,
 	amount int64,
 	payAddress *common.Address,
 	txList []*asiutil.Tx,
@@ -1550,7 +1550,7 @@ func createTestBlock(
 
 	blockTxns := make([]*asiutil.Tx, 0)
 	blockUtxos := NewUtxoViewpoint()
-	allFees := make(map[protos.Assets]int64)
+	allFees := make(map[protos.Asset]int64)
 
 	//add txlist to block:
 	for i:=0; i<len(txList); i++ {
@@ -1589,7 +1589,7 @@ func createTestBlock(
 		}
 	}
 	coinbaseTx, stdTxout, err := createTestCoinbaseTx(chaincfg.ActiveNetParams.Params,
-		coinbaseScript, nextBlockHeight, payAddress, assets, amount, contractOut)
+		coinbaseScript, nextBlockHeight, payAddress, asset, amount, contractOut)
 	if err != nil {
 		return nil, err
 	}
@@ -1604,7 +1604,7 @@ func createTestBlock(
 		pkScript, _ := txscript.PayToAddrScript(&fundationAddr)
 		txoutLen := len(coinbaseTx.MsgTx().TxOut)
 		for i := 0; i < txoutLen; i++ {
-			txOutAsset := coinbaseTx.MsgTx().TxOut[i].Assets
+			txOutAsset := coinbaseTx.MsgTx().TxOut[i].Asset
 			if !txOutAsset.IsIndivisible() {
 				value := coinbaseTx.MsgTx().TxOut[i].Value
 				coreTeamValue := int64(float64(value) * common.CoreTeamPercent)
@@ -1613,7 +1613,7 @@ func createTestBlock(
 					coinbaseTx.MsgTx().AddTxOut(&protos.TxOut{
 						Value:    coreTeamValue,
 						PkScript: pkScript,
-						Assets:   coinbaseTx.MsgTx().TxOut[i].Assets,
+						Asset:    coinbaseTx.MsgTx().TxOut[i].Asset,
 					})
 				}
 			}
@@ -1664,14 +1664,14 @@ func createAndSignBlock(paramstmp chaincfg.Params,
 	epoch uint32,
 	slot uint16,
 	preHeight int32,
-	assets protos.Assets,
+	asset protos.Asset,
 	amount int64,
 	payAddress *common.Address,
 	txList []*asiutil.Tx,
 	timeAddCnt int32,
 	preNode *blockNode) (*asiutil.Block, *blockNode, error) {
 
-	block, err := createTestBlock(chain, epoch, slot, preHeight, assets, amount, payAddress, txList, preNode)
+	block, err := createTestBlock(chain, epoch, slot, preHeight, asset, amount, payAddress, txList, preNode)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1735,7 +1735,7 @@ func (b *BlockChain) calcGasUsed(node *blockNode, block *asiutil.Block, view *Ut
 	}
 
 	var totalGasUsed uint64
-	allFees := make(map[protos.Assets]int64)
+	allFees := make(map[protos.Asset]int64)
 	var (
 		receipts types.Receipts
 	)
@@ -1812,7 +1812,7 @@ func getGasUsedAndStateRoot(b *BlockChain, block *asiutil.Block, preNode *blockN
 }
 
 //fetch utxo from blockchain or input preOut param:
-func (b *BlockChain) createSignUpTx(privateKey string, assets protos.Assets) (*asiutil.Tx, error ) {
+func (b *BlockChain) createSignUpTx(privateKey string, asset protos.Asset) (*asiutil.Tx, error ) {
 	fees := int64(chaincfg.DefaultAutoSignUpGasLimit)
 	if fees < 0 {
 		errStr := "createSignUpTx: fees is smaller than 0, can not gen signUpTx!"
@@ -1834,7 +1834,7 @@ func (b *BlockChain) createSignUpTx(privateKey string, assets protos.Assets) (*a
 
 	view := NewUtxoViewpoint()
 	var prevOuts *[]protos.OutPoint
-	prevOuts, err = b.FetchUtxoViewByAddressAndAsset(view, acc.Address.ScriptAddress(), &assets)
+	prevOuts, err = b.FetchUtxoViewByAddressAndAsset(view, acc.Address.ScriptAddress(), &asset)
 	if err != nil {
 		log.Errorf("createSignUpTx: FetchUtxoViewByAddress error: %v",err)
 		return nil, err
@@ -1864,14 +1864,14 @@ func (b *BlockChain) createSignUpTx(privateKey string, assets protos.Assets) (*a
 	txMsg.AddTxOut(&protos.TxOut{
 		Value:    int64(0),
 		PkScript: contractPkScript,
-		Assets:   asiutil.FlowCoinAsset,
+		Asset:    asiutil.AsimovAsset,
 		Data:     Data,
 	})
 
 	txMsg.AddTxOut(&protos.TxOut{
 		Value:    entry.Amount(),
 		PkScript: payPkScript,
-		Assets:   asiutil.FlowCoinAsset,
+		Asset:    asiutil.AsimovAsset,
 		Data:     nil,
 	})
 
