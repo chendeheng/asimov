@@ -54,6 +54,8 @@ type ManagerTmp struct {
 	chain fvm.ChainContext
 	//  genesis transaction data cache
 	genesisDataCache map[common.ContractCode][]chaincfg.ContractInfo
+	// unrestricted assets cache
+	assetsUnrestrictedCache map[protos.Asset]struct{}
 }
 
 // Init manager by genesis data.
@@ -65,6 +67,7 @@ func (m *ManagerTmp) Init(chain fvm.ChainContext, dataBytes [] byte) error {
 	}
 	m.chain = chain
 	m.genesisDataCache = cMap
+	m.assetsUnrestrictedCache = make(map[protos.Asset]struct{})
 	return nil
 }
 
@@ -450,16 +453,34 @@ func (m *ManagerTmp) GetFees(
 	return fees, nil, leftOvergas
 }
 
+// IsLimit returns a number of int type by find in memory or calling system
+// contract of registry the number represents if an asset is restricted
 func (m *ManagerTmp) IsLimit(block *asiutil.Block,
+	stateDB vm.StateDB, asset *protos.Asset) int {
+	if _, ok := m.assetsUnrestrictedCache[*asset]; ok {
+		return 0
+	}
+	limit := m.isLimit(block, stateDB, asset)
+
+	if limit == 0 {
+		m.assetsUnrestrictedCache[*asset] = struct{}{}
+	}
+
+	return limit
+}
+
+// isLimit returns a number of int type by calling system contract of registry
+// the number represents if an asset is restricted
+func (m *ManagerTmp) isLimit(block *asiutil.Block,
 	stateDB vm.StateDB, asset *protos.Asset) int {
 	officialAddr := chaincfg.OfficialAddress
 	_, organizationId, assetIndex := asset.AssetFields()
-	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
+	registryCenterAddress := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
-	input := common.PackIsRestrictedAssetInput(organizationId, assetIndex)
+	input := common.PackIsRestrictedAssetInput(common.IsRestrictedAssetByte, organizationId, assetIndex)
 	result, _, err := fvm.CallReadOnlyFunction(officialAddr, block, m.chain,
 		stateDB, chaincfg.ActiveNetParams.FvmParam,
-		common.ReadOnlyGas, proxyAddr, input)
+		common.ReadOnlyGas, registryCenterAddress, input)
 	if err != nil {
 		log.Error(err)
 		return -1
@@ -485,16 +506,16 @@ func (m *ManagerTmp) IsSupport(block *asiutil.Block,
 	if gasLimit < common.SupportCheckGas {
 		return false, 0
 	}
+
 	// step1: prepare parameters for calling system contract to get organization address
 	_, organizationId, assetIndex := asset.AssetFields()
 	caller := chaincfg.OfficialAddress
-	proxyAddr := vm.ConvertSystemContractAddress(common.RegistryCenter)
+	registryCenterAddress := vm.ConvertSystemContractAddress(common.RegistryCenter)
 
-	input := common.PackGetOrganizationAddressByIdInput(organizationId, assetIndex)
+	input := common.PackIsRestrictedAssetInput(common. GetOrganizationAddressByIdByte, organizationId, assetIndex)
 	result, leftOverGas, err := fvm.CallReadOnlyFunction(caller, block, m.chain,
 		stateDB, chaincfg.ActiveNetParams.FvmParam,
-		common.SupportCheckGas, proxyAddr, input)
-
+		common.SupportCheckGas, registryCenterAddress, input)
 	if err != nil {
 		log.Error(err)
 		return false, gasLimit - common.SupportCheckGas + leftOverGas

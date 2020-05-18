@@ -147,7 +147,7 @@ func (m *Manager) isLimit(block *asiutil.Block,
 	officialAddr := chaincfg.OfficialAddress
 	_, organizationId, assetIndex := asset.AssetFields()
 
-	input := common.PackIsRestrictedAssetInput(organizationId, assetIndex)
+	input := common.PackIsRestrictedAssetInput(common.IsRestrictedAssetByte, organizationId, assetIndex)
 	result, _, err := fvm.CallReadOnlyFunction(officialAddr, block, m.chain,
 		stateDB, chaincfg.ActiveNetParams.FvmParam,
 		common.ReadOnlyGas, registryCenterAddress, input)
@@ -183,7 +183,7 @@ func (m *Manager) IsSupport(block *asiutil.Block,
 	_, organizationId, assetIndex := asset.AssetFields()
 	caller := chaincfg.OfficialAddress
 
-	input := common.PackGetOrganizationAddressByIdInput(organizationId, assetIndex)
+	input := common.PackIsRestrictedAssetInput(common.GetOrganizationAddressByIdByte, organizationId, assetIndex)
 	result, leftOverGas, err := fvm.CallReadOnlyFunction(caller, block, m.chain,
 		stateDB, chaincfg.ActiveNetParams.FvmParam,
 		common.SupportCheckGas, registryCenterAddress, input)

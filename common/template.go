@@ -54,93 +54,62 @@ var (
 
 // PackCanTransferInput returns a byte slice according to given parameters
 func PackCanTransferInput(transferAddress []byte, assetIndex uint32) []byte {
-	var input []byte
-	input = append(input, CanTransferFuncByte...)
-	input = append(input, LeftPadBytes(transferAddress, 32)...)
+	input := make([]byte, 68)
+	copy(input[0:4], CanTransferFuncByte)
+	copy(input[15:36], transferAddress)
+	binary.BigEndian.PutUint32(input[64:], assetIndex)
 
-	return makeUpUint32(input, assetIndex)
+	return input[:]
 }
 
 // PackIsRestrictedAssetInput returns a byte slice according to given parameters
-func PackIsRestrictedAssetInput(organizationId uint32, assetIndex uint32) []byte {
-	var input []byte
-	input = append(input, IsRestrictedAssetByte...)
+func PackIsRestrictedAssetInput(funcByte []byte, organizationId uint32, assetIndex uint32) []byte {
+	input := make([]byte, 68)
+	copy(input[0:4], funcByte)
+	binary.BigEndian.PutUint32(input[32:36], organizationId)
+	binary.BigEndian.PutUint32(input[64:], assetIndex)
 
-	return makeUpUint32(makeUpUint32(input, organizationId), assetIndex)
-}
-
-// PackGetOrganizationAddressByIdInput returns a byte slice according to given parameters
-func PackGetOrganizationAddressByIdInput(organizationId uint32, assetIndex uint32) []byte {
-	var input []byte
-	input = append(input, GetOrganizationAddressByIdByte...)
-
-	return makeUpUint32(makeUpUint32(input, organizationId), assetIndex)
+	return input[:]
 }
 
 // PackGetTemplateCountInput returns a byte slice according to given parameters
 func PackGetTemplateCountInput(funcName string, category uint16) []byte {
-	var input []byte
+	input := make([]byte, 36)
 	if ContractTemplateWarehouse_GetApprovedTemplatesCountFunction() == funcName {
-		input = append(input, GetApprovedTemplatesCountByte...)
+		copy(input[0:4], GetApprovedTemplatesCountByte)
 	} else if ContractTemplateWarehouse_GetSubmittedTemplatesCountFunction() == funcName {
-		input = append(input, GetSubmittedTemplatesCountByte...)
+		copy(input[0:4], GetSubmittedTemplatesCountByte)
 	}
+	binary.BigEndian.PutUint16(input[34:], category)
 
-	return makeUpUint16(input, category)
+	return input[:]
 }
 
 // PackGetTemplateDetailInput returns a byte slice according to given parameters
 func PackGetTemplateDetailInput(funcName string, category uint16, index uint64) []byte {
-	var input []byte
+	input := make([]byte, 68)
 	if ContractTemplateWarehouse_GetApprovedTemplateFunction() == funcName {
-		input = append(input, GetApprovedTemplateByte...)
+		copy(input[0:4], GetApprovedTemplateByte)
 	} else if ContractTemplateWarehouse_GetSubmittedTemplateFunction() == funcName {
-		input = append(input, GetSubmittedTemplateByte...)
+		copy(input[0:4], GetSubmittedTemplateByte)
 	}
+	binary.BigEndian.PutUint16(input[34:36], category)
+	binary.BigEndian.PutUint64(input[60:], index)
 
-	return makeUpUint64(makeUpUint16(input, category), index)
+	return input[:]
 }
 
 // PackGetTemplateInput returns a byte slice according to given parameters
 func PackGetTemplateInput(category uint16, name string) []byte {
-	var input []byte
-	input = append(input, GetTemplateByte...)
-	input = makeUpUint16(input, category)
-	input = append(input, LeftPadBytes([]byte{byte(64)}, 32)...)
-	input = makeUpUint64(input, uint64(len(name)))
-	input = append(input, RightPadBytes([]byte(name), 32)...)
+	nameLength := len(name)
+	input := make([]byte, 4+32+32+32+(nameLength+31)/32*32)
+	copy(input[0:4], GetTemplateByte)
+	binary.BigEndian.PutUint16(input[34:36], category)
+	copy(input[67:68], []byte{byte(64)})
+	binary.BigEndian.PutUint64(input[92:], uint64(nameLength))
+	copy(input[100:], RightPadBytes([]byte(name), (nameLength+31)/32*32))
 
-	return input
-}
-
-// makeUpUint64 returns a 32 byte slice, by making up uint64
-func makeUpUint64(input []byte, a uint64) []byte {
-	input = append(input, LeftPadBytes([]byte{}, 24)...)
-	ret := make([]byte, 8)
-	binary.BigEndian.PutUint64(ret, a)
-	input = append(input, ret...)
-
-	return input
-}
-
-// makeUpUint32 returns a 32 byte slice, by making up uint32
-func makeUpUint32(input []byte, a uint32) []byte {
-	input = append(input, LeftPadBytes([]byte{}, 28)...)
-	ret := make([]byte, 4)
-	binary.BigEndian.PutUint32(ret, a)
-	input = append(input, ret...)
-
-	return input
-}
-
-// makeUpUint16 returns a 32 byte slice, by making up uint16
-func makeUpUint16(input []byte, a uint16) []byte {
-	input = append(input, LeftPadBytes([]byte{}, 30)...)
-	ret := make([]byte, 2)
-	binary.BigEndian.PutUint16(ret, a)
-	input = append(input, ret...)
-
-	return input
+	return input[:]
 }
 
 // UnPackBoolResult returns bool value by unpacking given byte slice
