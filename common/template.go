@@ -152,18 +152,18 @@ func UnPackIsRestrictedAssetResult(ret []byte) (bool, bool, error) {
 }
 
 // UnPackGetTemplatesCountResult returns template number by unpacking given byte slice
-func UnPackGetTemplatesCountResult(ret []byte) (int64, error) {
+func UnPackGetTemplatesCountResult(ret []byte) (uint64, error) {
 	if len(ret) != 32 {
-		return 0, errors.New("invalid length of ret of getOrganizationAddressesByAssets func")
+		return 0, errors.New("invalid length of ret of getTemplatesCount func")
 	}
 
-	return int64(ret[31]), nil
+	return binary.BigEndian.Uint64(ret[24:]), nil
 }
 
 // UnPackGetTemplateDetailResult returns template detail by unpacking given byte slice
 func UnPackGetTemplateDetailResult(ret []byte) (string, []byte, int64, uint8, uint8, uint8, uint8, error) {
 	name := string(ret[256:])
-	key := ret[32:64][0:32]
+	key := ret[32:64]
 	createTime := int64(binary.BigEndian.Uint64(ret[64:96][len(ret[64:96])-8:]))
 	approveCount := ret[96:128][len(ret[96:128])-1]
 	rejectCount := ret[128:160][len(ret[128:160])-1]
