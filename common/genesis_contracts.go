@@ -281,6 +281,18 @@ func ContractValidatorCommittee_GetAssetFeeListFunction() (string) {
 	return "getAssetFeeList"
 }
 
+func ContractValidatorCommittee_TestGetRoundParamsFunction() (string) {
+	return "testGetRoundParams"
+}
+
+func ContractValidatorCommittee_TestGetProposalDetailFunction() (string) {
+	return "testGetProposalDetail"
+}
+
+func ContractValidatorCommittee_TestUpdateValidatorBlocksFunction() (string) {
+	return "testUpdateValidatorBlocks"
+}
+
 func ContractValidatorCommittee_ConfigureFunctionRoleSuperFunction() (string) {
 	return "configureFunctionRoleSuper"
 }
@@ -307,6 +319,10 @@ func ContractValidatorCommittee_StartNewRoundFunction() (string) {
 
 func ContractValidatorCommittee_GetRoundLastUpdateHeightFunction() (string) {
 	return "getRoundLastUpdateHeight"
+}
+
+func ContractValidatorCommittee_TestUpdateRoundLengthFunction() (string) {
+	return "testUpdateRoundLength"
 }
 
 func ContractValidatorCommittee_SignupFunction() (string) {
