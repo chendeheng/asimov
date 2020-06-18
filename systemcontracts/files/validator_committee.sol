@@ -404,4 +404,23 @@ contract ValidatorCommittee is ACL {
   		return lastUpdatedHeight;
   	}
 
+  	/// 测试方法
+    function testUpdateAssetValidHeight(uint asset, uint validHeight) public {
+        AssetFee storage fee = assetFees[asset];
+        require(fee.existed);
+
+        fee.effectHeight = validHeight;
+    }
+
+    /// 测试方法
+    function testUpdateRoundLength(uint length) public {
+        ROUND_LENGTH = length;
+        PROPOSAL_LENGTH = SafeMath.div(SafeMath.mul(ROUND_LENGTH*5, 20), 30);
+    }
+
+    /// 测试方法
+    function testGetRoundParams() public view returns(uint, uint) {
+        return (round, ROUND_LENGTH);
+    }
+
 }
