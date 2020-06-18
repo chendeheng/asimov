@@ -10,4 +10,4 @@ import (
 
 // devnetGenesisHash is the hash of the first block in the block chain for the devnet
 // network (genesis block).
-var devnetGenesisHash = common.HexToHash("cccd0b9f9eff7443bcaebb66e6b8632e75089d2cb8ea711cc08eea53bac99965")
+var devnetGenesisHash = common.HexToHash("fb76e505a404390a85c2c53dcadcacd40c8713f6b6db7f6174c41e89f87735c2")
