@@ -221,19 +221,19 @@ func main() {
 
 	// please config your network first, default network is devnet
 	// testnet mainnet devnet
-	network := common.MainNet.String()
+	network := common.DevelopNet.String()
 
 	//// first step:
-	fmt.Println("Step 1, write system contracts start...")
-	skipPoa := network == common.MainNet.String()
-	writeSystemContract(*systemContractFolder, network, skipPoa)
-	fmt.Println("Step 1, write system contracts end...")
+	//fmt.Println("Step 1, write system contracts start...")
+	//skipPoa := network == common.DevelopNet.String()
+	//writeSystemContract(*systemContractFolder, network, skipPoa)
+	//fmt.Println("Step 1, write system contracts end...")
 
 	// second step:
-	//fmt.Println("Step 2, write genesis block start...")
-	//genesisHash := writeGenesisBin(network)
-	//writeGenesis(network, genesisHash)
-	//fmt.Println("Step 2, write genesis block end...")
+	fmt.Println("Step 2, write genesis block start...")
+	genesisHash := writeGenesisBin(network)
+	writeGenesis(network, genesisHash)
+	fmt.Println("Step 2, write genesis block end...")
 }
 
 func writeGenesisBin(testwork string) *common.Hash {
