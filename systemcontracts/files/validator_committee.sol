@@ -415,7 +415,7 @@ contract ValidatorCommittee is ACL {
     /// 测试方法
     function testUpdateRoundLength(uint length) public {
         ROUND_LENGTH = length;
-        PROPOSAL_LENGTH = SafeMath.div(SafeMath.mul(ROUND_LENGTH*5, 20), 30);
+        PROPOSAL_LENGTH = SafeMath.div(SafeMath.mul(ROUND_LENGTH, 7), 30);
     }
 
     /// 测试方法
